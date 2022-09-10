@@ -1,0 +1,11 @@
+pandas~=1.4.1
+numpy~=1.22.3
+python-osc~=1.8.0
+scipy~=1.7.3
+matplotlib~=3.2.2
+path~=13.1.0
+pydub~=0.25
+librosa~=0.9.2
+scikit-learn~=0.23.1
+tqdm~=4.64.0
+joblib~=1.1.0
