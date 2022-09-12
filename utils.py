@@ -16,6 +16,6 @@ def load_df():
 
 
 def scale_col(col: pd.Series):
-    col = col + abs(col.min())
+    col = col - col.min()
     col = col / col.max()
     return col
