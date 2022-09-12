@@ -40,6 +40,34 @@ This example will play only segments with `spectral_centroid` between 200 and 50
 Since "x" and "y" are not specified, a random segment will be selected.
 The format of the filtering message is `"keep_only_{above/below/equal}_{column name}"`.
 
+And here is another example that demostrates filtering by sample name (it should work if you have [extra-samples](https://github.com/yaxu/spicule/tree/master/extra-samples)):
+```
+d1
+$ stack [
+id
+$ struct "t(3,8)"
+$ pF "keep_only_below_spectral_centroid" 300
+# pF "keep_only_above_spectral_centroid" 200
+# pS "keep_only_equal_s" "kick"
+# release 0.2
+# gain 1.5
+, id
+$ fast "{1!4 2}%7"
+$ fast "{1!4 2}%8"
+$ struct "t(8,8)"
+$ pS "keep_only_equal_s" "foley"
+# pF "keep_only_below_spectral_centroid" 6000
+# pF "keep_only_above_spectral_centroid" 5000
+# release 0.1
+# gain 1.2
+# room 0.4 
+# c "r"
+, id
+$ pS "keep_only_equal_s" "snare(2,4,1)"
+# gain 2
+# c "g"
+]
+```
 
 
 There are many more things to explore using this tool (better segmentation, better features, more 2d embeddings, and more...). Feel free to contact me if you are interested :)
