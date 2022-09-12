@@ -59,6 +59,8 @@ def update_func(*args):
         update_func.x = 0
         update_func.y = 0
     message_dict = dict(zip(args[1::2], args[2::2]))
+    if "s" in message_dict:
+        return 
     if ('x' not in message_dict) or ('y' not in message_dict):
         message_dict['x'] = None
         message_dict['y'] = None
