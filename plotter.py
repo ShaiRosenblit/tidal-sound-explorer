@@ -36,7 +36,7 @@ class Scope:
                              alpha=0.5, picker=10, c=plot_df.color,
                              s=plot_df.point_size, cmap=cm.get_cmap('tab20'))
         self.default_point_dur = 0.05
-        self.default_size_factor = 30
+        self.default_size_factor = 100
         self.default_color = 'w'
         self.p = self.ax.scatter([0], [0], visible=False)
         # print(type(self.p))
