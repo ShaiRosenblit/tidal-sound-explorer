@@ -37,6 +37,7 @@ class Scope:
                              s=plot_df.point_size, cmap=cm.get_cmap('tab20'))
         self.default_point_dur = 0.05
         self.default_size_factor = 30
+        self.default_color = 'w'
         self.p = self.ax.scatter([0], [0], visible=False)
         # print(type(self.p))
 
@@ -62,7 +63,11 @@ class Scope:
                          self.t + point_dur
                          ]
             self.points = np.vstack([self.points, new_point])  # add new point
-            self.points_colors = np.append(self.points_colors, data_dict['c'])
+            if 'c' in data_dict:
+                color = data_dict['c']
+            else:
+                color = self.default_color
+            self.points_colors = np.append(self.points_colors, color)
             print(f'{len(self.points)}', data_dict)
 
         self.p.set_visible(True)
