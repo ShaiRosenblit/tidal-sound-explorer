@@ -13,7 +13,7 @@ The workflow is as flows:
 4. Run the scripts `plotter.py`. This script will plot the 2D embedding of the samples and will interactively in real time will plot the played samples. (It is not necessary to run this script to make sounds)
 5. Run tidalcycles (and Supercollider and Superdirt of course). Try executing the following code:
 ```
-x1
+d1
 $ struct "t*16"
 $ x (range "0.6" "0.7" $ fast "1" sine)
 # y (range "0.2" "0.3" $ fast "1" cosine)
