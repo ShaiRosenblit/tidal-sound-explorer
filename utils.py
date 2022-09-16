@@ -6,8 +6,12 @@ def load_df():
     df = df.rename(columns={'Unnamed: 0': 'seg_number_in_sample'})
     df['s'] = df.seg_sound.str.split(':').str[0]
     df['n'] = df.seg_sound.str.split(':').str[1].astype(int)
-    df['col_x'] = df['pca_0']
-    df['col_y'] = df['pca_1']
+    for c in df.columns:
+        if pd.api.types.is_numeric_dtype(df[c]):
+            df[f"{c}_norm"] = scale_col(df[c])
+            df[f"{c}_norm"] = scale_col(df[c])
+    df['col_x'] = df['pca_1']
+    df['col_y'] = df['pca_2']
     df['col_x'] = scale_col(df['col_x'])
     df['col_y'] = scale_col(df['col_y'])
     df['color'] = df['cluster']

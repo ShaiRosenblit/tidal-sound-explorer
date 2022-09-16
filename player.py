@@ -19,22 +19,28 @@ client_port = 57120
 
 def send_message_to_tidal(message_dict):
     filters = tuple((k, v) for k, v in message_dict.items() if k.startswith('keep_only'))
-    if len(filters) > 0:
-        filt_idx = filter_df(filters)
-        if len(filt_idx) == 0:
-            return
-        filt_xy = df.loc[filt_idx, ['col_x', 'col_y']].values
-        if message_dict['x'] is not None:
-            dists = ((filt_xy[:, 0] - message_dict['x'])**2 + (filt_xy[:, 1] - message_dict['y'])**2)**0.5
-            sub_df_idx = np.argmin(dists)
-            idx = filt_idx[sub_df_idx]
+    filt_idx = filter_df(filters)
+    if len(filt_idx) == 0:
+        return
+    query_cols = []
+    query_vals = []
+    for k, v in message_dict.items():
+        if k.startswith('query_'):
+            query_cols.append(k[6:])
+            query_vals.append(v)
+
+    filt_sub_space = df.loc[filt_idx, query_cols].values
+    if len(query_cols) > 0:
+        if 'nth_nearest' in message_dict:
+            nth_nearest = int(message_dict['nth_nearest'])
         else:
-            idx = np.random.choice(filt_idx)
+            nth_nearest = 0
+        dists = ((filt_sub_space - query_vals)**2).sum(axis=1)
+        nth_nearest = min(nth_nearest, (len(dists) - 1))
+        sub_df_idx = np.argpartition(dists, nth_nearest)[nth_nearest]
+        idx = filt_idx[sub_df_idx]
     else:
-        if message_dict['x'] is not None:
-            _, idx = kdt.query([message_dict['x'], message_dict['y']])
-        else:
-            idx = np.random.choice(df.index)
+        idx = np.random.choice(filt_idx)
 
     print(f'Playing smaple {df.iloc[idx]["seg_sound"]}, '
           f'{df.iloc[idx]["seg_number_in_sample"]}, '
@@ -100,6 +106,9 @@ async def main():
 @functools.lru_cache(maxsize=None)
 def filter_df(filters):
     print(f'filters - {filters}')
+    if len(filters) == 0:
+        return df.index
+
     filt_df = df
     for filt, val in filters:
         if filt.startswith('keep_only_above_'):
