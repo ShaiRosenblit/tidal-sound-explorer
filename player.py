@@ -66,7 +66,7 @@ def update_func(*args):
         update_func.x = 0
         update_func.y = 0
     message_dict = dict(zip(args[1::2], args[2::2]))
-    if "s" in message_dict:
+    if "s" in message_dict or (len(message_dict)==1 and (list(message_dict.keys())[0] is not str)):
         return 
     if ('x' not in message_dict) or ('y' not in message_dict):
         message_dict['x'] = None
@@ -118,10 +118,13 @@ def filter_df(filters):
             filt_df = filt_df[filt_df[filt[16:]] < val]
         elif filt.startswith('keep_only_equal_'):
             filt_df = filt_df[filt_df[filt[16:]] == val]
+        elif filt.startswith('keep_only_isin_'):
+            words = val.split('.')
+            filt_df = filt_df[filt_df[filt[15:]].isin(words)]
         elif filt.startswith('keep_only_start_'):
             filt_df = filt_df[filt_df[filt[16:]].str.startswith(val)]
         else:
-            raise
+            raise ValueError(f"unsupprted filter {filt}")
     return filt_df.index
 
 

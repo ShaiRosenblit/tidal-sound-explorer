@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 import config
 import os
@@ -15,19 +16,22 @@ def segment_csv_path():
 def load_df():
     df = pd.read_csv(segment_csv_path())
     df = df.rename(columns={'Unnamed: 0': 'seg_number_in_sample'})
-    df['s'] = df.seg_sound.str.split(':').str[0]
-    df['n'] = df.seg_sound.str.split(':').str[1].astype(int)
+    newcols = dict()
+    newcols['s'] = df.seg_sound.str.split(':').str[0]
+    newcols['n'] = df.seg_sound.str.split(':').str[1].astype(int)
     for c in df.columns:
         if pd.api.types.is_numeric_dtype(df[c]):
-            df[f"{c}_norm"] = scale_col(df[c])
-            df[f"{c}_norm"] = scale_col(df[c])
-    df['col_x'] = df['pca_1']
-    df['col_y'] = df['pca_2']
-    df['col_x'] = scale_col(df['col_x'])
-    df['col_y'] = scale_col(df['col_y'])
-    df['color'] = df['cluster']
-    df['point_size'] = 1
+            newcols[f"{c}_norm"] = scale_col(df[c])
+            newcols[f"{c}_percentile"] = df[c].argsort().argsort() / len(df)
+    newcols['col_x'] = df['pca_0']
+    newcols['col_y'] = df['pca_1']
+    newcols['col_x'] = scale_col(newcols['col_x'])
+    newcols['col_y'] = scale_col(newcols['col_y'])
+    newcols['color'] = df['cluster']
+    newcols['point_size'] = 1
+    df = pd.concat([df, pd.DataFrame(newcols, index=df.index)], axis=1)
     return df
+
 
 def scale_col(col: pd.Series):
     col = col - col.min()

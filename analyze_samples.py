@@ -1,5 +1,7 @@
+import subprocess
 import pandas as pd
 import os.path
+import pydub
 from path import Path
 from tqdm import tqdm
 import numpy as np
@@ -11,6 +13,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed
 import sklearn.cluster as cluster
+import warnings
 
 import config
 import utils
@@ -23,6 +26,16 @@ def analyze_seg(samples, fs):
     mfcc_mat = mfcc(y=samples, sr=fs, n_mfcc=20)
     for i, v in enumerate(mfcc_mat.mean(axis=1)):
         feats[f'mfcc_{i}'] = v
+
+    with warnings.catch_warnings():  # supress librosa :UserWarning: Trying to estimate tuning from empty frequency set.
+        warnings.simplefilter("ignore")
+        chroma_mat = librosa.feature.chroma_stft(y=samples, sr=fs)
+        for i, v in enumerate(chroma_mat.mean(axis=1)):
+            feats[f'chroma_{i}'] = v
+        feats['note'] = np.argmax(np.mean(chroma_mat, axis=1))
+        feats['note_quality'] = np.max(np.mean(chroma_mat, axis=1))-np.median(np.mean(chroma_mat, axis=1))
+    # librosa.piptrack(y=samples, sr=fs)
+    # feats['pitch']
     feats['spectral_bandwidth'] = np.mean(spectral_bandwidth(y=samples, sr=fs))
     feats['spectral_centroid'] = np.mean(spectral_centroid(y=samples, sr=fs))
     feats['spectral_contrast'] = np.mean(spectral_contrast(y=samples, sr=fs))
@@ -35,11 +48,10 @@ def analyze_seg(samples, fs):
     feats['spectral_rolloff_std'] = np.std(spectral_rolloff(y=samples, sr=fs))
     s = pd.Series(samples)
     window = int(fs / 50)
-    amp_env = (
-        s
-            .rolling(window).max()
-            .shift(-window)
-    )
+    amp_env = (s
+               .rolling(window).max()
+               .shift(-window)
+               )
     max_amp = amp_env.max()
     attack_thresh = max_amp * 0.9
     attack_idx = np.where(samples > attack_thresh)[0][0]
@@ -67,9 +79,8 @@ def segment_and_analyze_sample(audio_file: Path, sound_name, min_seg_num_samples
     else:
         onsets_idx = [0, len_samples]
     segments_df = pd.DataFrame({'seg_start_idx': onsets_idx[:-1], 'seg_end_idx': onsets_idx[1:]})
-
     segments_df['seg_num_samples'] = segments_df['seg_end_idx'] - segments_df['seg_start_idx']
-    segments_df = segments_df[segments_df.seg_num_samples > min_seg_num_samples]
+    segments_df = segments_df[segments_df.seg_num_samples > min_seg_num_samples].reset_index()
     segments_df['seg_start'] = segments_df['seg_start_idx'] / len_samples
     segments_df['seg_end'] = segments_df['seg_end_idx'] / len_samples
 
@@ -113,7 +124,15 @@ def gen_haskell_code(segments_df, haskell_file_path):
         f.write(haskell_code_str)
 
 
-def gen_samples_dict(sounds_dir):
+def convert_file_to_wav(file):
+    wav_file = Path(file).with_suffix('.wav').replace(' ', '_')
+    if Path(wav_file).exists():
+        return
+    command = f'ffmpeg -i "{file}" -ab 160k -ac 2 -ar 44100 -vn "{wav_file}"'
+    subprocess.call(command, shell=True)
+
+
+def gen_samples_dict(sounds_dir, convert_to_wav=False):
     # expand leading ~
     sounds_dir = os.path.expanduser(sounds_dir)
     print(sounds_dir)
@@ -124,17 +143,25 @@ def gen_samples_dict(sounds_dir):
         files = directory.files()
         files.sort()
         # print('*'*20)
+        if convert_to_wav:
+            print('yo')
+            files_for_conversion = [f for f in files if f.ext.lower() in ['.m4a']]
+            print(files_for_conversion)
+            for f in files_for_conversion:
+                convert_file_to_wav(f)
+        files = directory.files()
         files = [f for f in files if f.ext.lower() == '.wav']
+        print(files)
         for i, file in enumerate(files):
             # print(file.split('/')[-1])
             samples_dict[f"{directory.split('/')[-1]}:{i}"] = file
     return samples_dict
 
 
-def gen_samples_dict_multi(sounds_dirs_multi):
+def gen_samples_dict_multi(sounds_dirs_multi, convert_to_wav=False):
     samples_dict_milti = {}
     for sounds_dir in sounds_dirs_multi:
-        samples_dict_milti.update(gen_samples_dict(sounds_dir))
+        samples_dict_milti.update(gen_samples_dict(sounds_dir, convert_to_wav=convert_to_wav))
     return samples_dict_milti
 
 
@@ -155,7 +182,7 @@ def gen_seg_df(samples_dict):
     return seg_df
 
 
-def add_embeddings(df):
+def add_embeddings(df, run_umap=False):
     feats_cols = [
         'seg_dur_sec',
         'rms',
@@ -173,16 +200,17 @@ def add_embeddings(df):
         'rms_attack',
         'rms_decay',
     ]
-    reducer = umap.UMAP(
-        random_state=42,
-        n_neighbors=30,
-        min_dist=0.0,
-        n_components=2,
-    )
-    sscaler = StandardScaler()
-    reducer.fit(df[feats_cols])
-    umap_embedding = reducer.transform(sscaler.fit_transform(df[feats_cols]))
-    df[[f'umap_{i}' for i in range(umap_embedding.shape[1])]] = umap_embedding
+    if run_umap:
+        reducer = umap.UMAP(
+            random_state=42,
+            n_neighbors=30,
+            min_dist=0.0,
+            n_components=2,
+        )
+        sscaler = StandardScaler()
+        reducer.fit(df[feats_cols])
+        umap_embedding = reducer.transform(sscaler.fit_transform(df[feats_cols]))
+        df[[f'umap_{i}' for i in range(umap_embedding.shape[1])]] = umap_embedding
 
     pca = PCA()
     sscaler = StandardScaler()
@@ -195,10 +223,10 @@ def add_embeddings(df):
 
 
 def main():
-    samples_dict = gen_samples_dict_multi(config.sample_folders)
+    samples_dict = gen_samples_dict_multi(config.sample_folders, convert_to_wav=False)
 
     df = gen_seg_df(samples_dict)
-    df = add_embeddings(df)
+    df = add_embeddings(df, run_umap=False)
     df.to_csv(utils.segment_csv_path())
     # gen_haskell_code(df, '/Users/shai/Documents/tidal/segments.hs')
 
