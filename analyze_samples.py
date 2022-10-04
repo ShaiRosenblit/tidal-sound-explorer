@@ -1,4 +1,5 @@
 import pandas as pd
+import os.path
 from path import Path
 from tqdm import tqdm
 import numpy as np
@@ -11,6 +12,8 @@ from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed
 import sklearn.cluster as cluster
 
+import config
+import utils
 
 def analyze_seg(samples, fs):
     samples = samples - np.mean(samples)
@@ -111,6 +114,8 @@ def gen_haskell_code(segments_df, haskell_file_path):
 
 
 def gen_samples_dict(sounds_dir):
+    # expand leading ~
+    sounds_dir = os.path.expanduser(sounds_dir)
     print(sounds_dir)
     dirs = Path(sounds_dir).dirs()
     # print(dirs)
@@ -190,15 +195,11 @@ def add_embeddings(df):
 
 
 def main():
-    samples_dict = gen_samples_dict_multi([
-        '/Users/shai/Library/Application Support/SuperCollider/downloaded-quarks/Dirt-Samples',
-        '/Users/shai/Documents/tidal/sounds/samples-yt',
-        '/Users/shai/Documents/tidal/sounds/samples-extra',
-    ])
+    samples_dict = gen_samples_dict_multi(config.sample_folders)
 
     df = gen_seg_df(samples_dict)
     df = add_embeddings(df)
-    df.to_csv('/Users/shai/Documents/tidal/segments220910.csv')
+    df.to_csv(utils.segment_csv_path())
     # gen_haskell_code(df, '/Users/shai/Documents/tidal/segments.hs')
 
 

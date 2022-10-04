@@ -1,8 +1,18 @@
 import pandas as pd
 
+import config
+
+def segment_csv_path():
+    result = os.path.expanduser(config.segment_csv)
+    try:
+        os.makedirs(os.path.dirname(output_csv))
+    except FileExistsError:
+        # directory already exists
+        pass
+    return result
 
 def load_df():
-    df = pd.read_csv('/Users/shai/Documents/tidal/segments220910.csv')
+    df = pd.read_csv(segment_csv_path())
     df = df.rename(columns={'Unnamed: 0': 'seg_number_in_sample'})
     df['s'] = df.seg_sound.str.split(':').str[0]
     df['n'] = df.seg_sound.str.split(':').str[1].astype(int)
@@ -17,7 +27,6 @@ def load_df():
     df['color'] = df['cluster']
     df['point_size'] = 1
     return df
-
 
 def scale_col(col: pd.Series):
     col = col - col.min()
