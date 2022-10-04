@@ -6,6 +6,8 @@ from pydub import AudioSegment
 import os
 import sys
 
+import config
+
 from find_beats import find_beats_and_bpm, segment_and_analyze_sample
 
 
