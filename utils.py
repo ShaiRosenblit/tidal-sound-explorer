@@ -1,11 +1,12 @@
 import pandas as pd
 
 import config
+import os
 
 def segment_csv_path():
     result = os.path.expanduser(config.segment_csv)
     try:
-        os.makedirs(os.path.dirname(output_csv))
+        os.makedirs(os.path.dirname(result))
     except FileExistsError:
         # directory already exists
         pass
