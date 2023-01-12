@@ -1,5 +1,6 @@
 import json
 import socket
+import sys
 
 import numpy as np
 import pandas as pd
@@ -12,18 +13,23 @@ from utils import load_df
 
 UDP_IP = "127.0.0.1"
 UDP_PORT = 5005
+UDP_PORT_plotter2player = 5006
 MAX_POINTS_IN_QUEUE = 30  # adjust this number if the event rate is too high and the plot gets out of sync
 
 sock = socket.socket(socket.AF_INET,
                      socket.SOCK_DGRAM)
 sock.bind((UDP_IP, UDP_PORT))
 
+sock_plotter2player = socket.socket(socket.AF_INET,
+                     socket.SOCK_DGRAM)
+
 plt.style.use('dark_background')
 
 
 class Scope:
-    def __init__(self, ax, plot_df, dt):
+    def __init__(self, fig, ax, plot_df, dt):
         print("Get ready for some points!!!")
+        self.fig = fig
         self.ax = ax
         self.dt = dt
         self.df = plot_df
@@ -39,7 +45,10 @@ class Scope:
         self.default_size_factor = 100
         self.default_color = 'w'
         self.p = self.ax.scatter([0], [0], visible=False)
-        # print(type(self.p))
+        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        self.fig.canvas.mpl_connect('key_press_event', self.on_press)
+        self.selected_key = '0'
+        self.clicked_key_vals = {}
 
     def update(self, data_dict):
         self.t += self.dt
@@ -79,6 +88,22 @@ class Scope:
         else:
             self.p.set_visible(False)
         return self.p,
+    
+    def onclick(self, event):
+        # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+        #     ('double' if event.dblclick else 'single', event.button,
+        #     event.x, event.y, event.xdata, event.ydata))
+        self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
+        sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
+        print('*'*40)
+        print(self.clicked_key_vals)
+        print('~'*40)
+    
+    def on_press(self, event):
+        print('press', event.key)
+        self.selected_key = event.key
+        sys.stdout.flush()
+
 
 
 def get_updated_val(update_val=None):
@@ -110,10 +135,11 @@ df = load_df()
 interval = 1
 dt_ = interval / 1000
 sock.settimeout(0)
+sock_plotter2player.settimeout(0)
 
-fig, ax_ = plt.subplots(figsize=(10, 10))
+fig_, ax_ = plt.subplots(figsize=(10, 10))
 
-scope = Scope(ax_, df, dt_)
-ani = animation.FuncAnimation(fig, scope.update, emitter, interval=interval,
+scope = Scope(fig_, ax_, df, dt_)
+ani = animation.FuncAnimation(fig_, scope.update, emitter, interval=interval,
                               blit=True)
 plt.show()

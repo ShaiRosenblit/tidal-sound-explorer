@@ -13,7 +13,8 @@ import config
 from utils import load_df
 
 ip = "127.0.0.1"
-udt_port = 5005
+udp_port = 5005
+UDP_PORT_plotter2player = 5006
 server_port = 57121
 client_port = 57120
 
@@ -61,10 +62,16 @@ def send_message_to_tidal(message_dict):
     return idx
 
 
+
+
 def update_func(*args):
+
     if not hasattr(update_func, 'x'):
         update_func.x = 0
         update_func.y = 0
+    if not hasattr(update_func, 'data_from_plotter'):
+        update_func.data_from_plotter = {}
+    
     message_dict = dict(zip(args[1::2], args[2::2]))
     if "s" in message_dict or (len(message_dict)==1 and (list(message_dict.keys())[0] is not str)):
         return 
@@ -74,14 +81,31 @@ def update_func(*args):
 
     update_func.x = message_dict['x']
     update_func.y = message_dict['y']
+    try:
+        data_from_plotter, _ = sock_plotter2player.recvfrom(1024)
+        data_from_plotter = json.loads(data_from_plotter)
+        update_func.data_from_plotter = data_from_plotter
+        print('*'*40)
+        print(f'Got data from plotter: {update_func.data_from_plotter}')
+        print('~'*40)
+    except socket.error:
+        pass
+    
+    if 'offset_xy_key' in message_dict:
+        if message_dict['offset_xy_key'] in update_func.data_from_plotter:
+            print(update_func.data_from_plotter[message_dict['offset_xy_key']])
+            print(message_dict['query_col_x'])
+            message_dict['query_col_x'] += update_func.data_from_plotter[message_dict['offset_xy_key']][0]
+            message_dict['query_col_y'] += update_func.data_from_plotter[message_dict['offset_xy_key']][1]
+            print(message_dict['query_col_x'])
+
     idx = send_message_to_tidal(message_dict)
     if idx is not None:
         message_dict['idx'] = int(idx)
         if 'gain' not in message_dict:
             message_dict['gain'] = 1
         # print(message_dict)
-        sock.sendto(json.dumps(message_dict, indent=2).encode('utf-8'), (ip, udt_port))
-
+        sock.sendto(json.dumps(message_dict, indent=2).encode('utf-8'), (ip, udp_port))
 
 dispatcher = Dispatcher()
 dispatcher.set_default_handler(update_func)
@@ -135,5 +159,10 @@ if __name__ == "__main__":
     client = udp_client.SimpleUDPClient("127.0.0.1", client_port)
     sock = socket.socket(socket.AF_INET,  # Internet
                          socket.SOCK_DGRAM)  # UDP
+    sock_plotter2player = socket.socket(socket.AF_INET,  # Internet
+                                        socket.SOCK_DGRAM)  # UDP
+
+    sock_plotter2player.settimeout(0)
+    sock_plotter2player.bind(("127.0.0.1", UDP_PORT_plotter2player))
 
     asyncio.run(main())
