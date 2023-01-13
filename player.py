@@ -99,11 +99,8 @@ def update_func(*args):
     
     if 'offset_xy_key' in message_dict:
         if message_dict['offset_xy_key'] in update_func.data_from_plotter:
-            print(update_func.data_from_plotter[message_dict['offset_xy_key']])
-            print(message_dict['query_col_x'])
             message_dict['query_col_x'] += update_func.data_from_plotter[message_dict['offset_xy_key']][0]
             message_dict['query_col_y'] += update_func.data_from_plotter[message_dict['offset_xy_key']][1]
-            print(message_dict['query_col_x'])
 
     idx = send_message_to_tidal(message_dict)
     if idx is not None:
