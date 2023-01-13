@@ -61,7 +61,12 @@ def send_message_to_tidal(message_dict):
     client.send_message("/dirt/play", message_list)
     return idx
 
-
+def empty_socket(sock):
+    while True:
+        try:
+            sock.recvfrom(65535)
+        except socket.error:
+            break
 
 
 def update_func(*args):
@@ -82,7 +87,8 @@ def update_func(*args):
     update_func.x = message_dict['x']
     update_func.y = message_dict['y']
     try:
-        data_from_plotter, _ = sock_plotter2player.recvfrom(1024)
+        data_from_plotter, _ = sock_plotter2player.recvfrom(65535)
+        empty_socket(sock_plotter2player)
         data_from_plotter = json.loads(data_from_plotter)
         update_func.data_from_plotter = data_from_plotter
         print('*'*40)

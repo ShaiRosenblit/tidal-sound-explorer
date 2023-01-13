@@ -49,8 +49,10 @@ class Scope:
         self.p = self.ax.scatter([0], [0], visible=False)
         num_text_elements = 10
         self.texts = [self.ax.text(0, 0, '', color='w') for i in range(num_text_elements)]
-
-        self.fig.canvas.mpl_connect('button_press_event', self.onclick)
+        self.poiter_clicked = False
+        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
+        self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.fig.canvas.mpl_connect('key_press_event', self.on_press)
         self.selected_key = '1'
         self.clicked_key_vals = {}
@@ -101,17 +103,32 @@ class Scope:
             self.texts[i].set_visible(False)
         return self.p, *self.texts
     
-    def onclick(self, event):
+    def on_motion(self, event):
+        if not self.poiter_clicked:
+            return
         # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
         #     ('double' if event.dblclick else 'single', event.button,
         #     event.x, event.y, event.xdata, event.ydata))
         self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
         plt.text(event.xdata, event.ydata, self.selected_key, color='w')
         sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
-        print('*'*40)
-        print(self.clicked_key_vals)
-        print('~'*40)
+        # print('*'*40)
+        # print(self.clicked_key_vals)
+        # print('~'*40)
     
+    def on_click(self, event):
+        if event.button == 1:
+            self.poiter_clicked = True
+            self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
+            plt.text(event.xdata, event.ydata, self.selected_key, color='w')
+            sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
+        else:
+            self.poiter_clicked = False
+    
+    def on_release(self, event):
+        if event.button == 1:
+            self.poiter_clicked = False
+
     def on_press(self, event):
         if event.key == 'tab':
             self.clicked_key_vals = {}
