@@ -8,7 +8,7 @@ import numpy as np
 import librosa
 from librosa.feature.spectral import mfcc, spectral_bandwidth, spectral_centroid, \
     spectral_contrast, spectral_flatness, spectral_rolloff
-import umap
+# import umap
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from joblib import Parallel, delayed

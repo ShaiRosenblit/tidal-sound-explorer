@@ -29,6 +29,8 @@ plt.style.use('dark_background')
 class Scope:
     def __init__(self, fig, ax, plot_df, dt):
         print("Get ready for some points!!!")
+        plt.rcParams['keymap.xscale'].remove('k')
+        plt.rcParams['keymap.save'].remove('s')
         self.fig = fig
         self.ax = ax
         self.dt = dt
@@ -45,9 +47,12 @@ class Scope:
         self.default_size_factor = 100
         self.default_color = 'w'
         self.p = self.ax.scatter([0], [0], visible=False)
+        num_text_elements = 10
+        self.texts = [self.ax.text(0, 0, '', color='w') for i in range(num_text_elements)]
+
         self.fig.canvas.mpl_connect('button_press_event', self.onclick)
         self.fig.canvas.mpl_connect('key_press_event', self.on_press)
-        self.selected_key = '0'
+        self.selected_key = '1'
         self.clicked_key_vals = {}
 
     def update(self, data_dict):
@@ -87,19 +92,32 @@ class Scope:
             self.points[:, 2] *= 0.9
         else:
             self.p.set_visible(False)
-        return self.p,
+        for i, (k, v) in enumerate(self.clicked_key_vals.items()):
+            self.texts[i].set_text(k)
+            self.texts[i].set_position(v)
+            self.texts[i].set_color('w')
+            self.texts[i].set_visible(True) 
+        for i in range(len(self.clicked_key_vals), len(self.texts)):
+            self.texts[i].set_visible(False)
+        return self.p, *self.texts
     
     def onclick(self, event):
         # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
         #     ('double' if event.dblclick else 'single', event.button,
         #     event.x, event.y, event.xdata, event.ydata))
         self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
+        plt.text(event.xdata, event.ydata, self.selected_key, color='w')
         sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
         print('*'*40)
         print(self.clicked_key_vals)
         print('~'*40)
     
     def on_press(self, event):
+        if event.key == 'tab':
+            self.clicked_key_vals = {}
+            for t in self.texts:
+                t.set_visible(False)
+            return
         print('press', event.key)
         self.selected_key = event.key
         sys.stdout.flush()
