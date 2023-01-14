@@ -135,6 +135,10 @@ class Scope:
             for t in self.texts:
                 t.set_visible(False)
             return
+        if event.key == 'backspace':
+            if self.selected_key in self.clicked_key_vals:
+                del self.clicked_key_vals[self.selected_key]
+            return
         print('press', event.key)
         self.selected_key = event.key
         sys.stdout.flush()
