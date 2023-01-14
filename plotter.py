@@ -110,7 +110,6 @@ class Scope:
         #     ('double' if event.dblclick else 'single', event.button,
         #     event.x, event.y, event.xdata, event.ydata))
         self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
-        plt.text(event.xdata, event.ydata, self.selected_key, color='w')
         sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
         # print('*'*40)
         # print(self.clicked_key_vals)
@@ -120,7 +119,6 @@ class Scope:
         if event.button == 1:
             self.poiter_clicked = True
             self.clicked_key_vals[self.selected_key] = event.xdata, event.ydata
-            plt.text(event.xdata, event.ydata, self.selected_key, color='w')
             sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
         else:
             self.poiter_clicked = False
