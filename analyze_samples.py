@@ -149,7 +149,6 @@ def gen_samples_dict(sounds_dir, convert_to_wav=False):
             print(files_for_conversion)
             for f in files_for_conversion:
                 convert_file_to_wav(f)
-        files = directory.files()
         files = [f for f in files if f.ext.lower() == '.wav']
         print(files)
         for i, file in enumerate(files):
@@ -179,6 +178,7 @@ def gen_seg_df(samples_dict):
     seg_df = pd.concat(seg_df_list)
     seg_df = seg_df.fillna(0)
     seg_df = seg_df[seg_df.seg_dur_sec > 0]
+    seg_df = seg_df[seg_df.rms > 0.01]
     return seg_df
 
 
