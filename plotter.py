@@ -27,7 +27,7 @@ plt.style.use('dark_background')
 
 
 class Scope:
-    def __init__(self, fig, ax, plot_df, dt):
+    def __init__(self, fig, ax, plot_df, dt, init_random_keys=True):
         print("Get ready for some points!!!")
         plt.rcParams['keymap.xscale'].remove('k')
         plt.rcParams['keymap.save'].remove('s')
@@ -56,6 +56,9 @@ class Scope:
         self.fig.canvas.mpl_connect('key_press_event', self.on_press)
         self.selected_key = '1'
         self.clicked_key_vals = {}
+        if init_random_keys:
+            for key in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']:
+                self.clicked_key_vals[key] = 0.5+np.random.randn()*0.2, 0.5+np.random.randn()*0.2
 
     def update(self, data_dict):
         self.t += self.dt
