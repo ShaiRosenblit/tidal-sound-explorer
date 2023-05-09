@@ -54,7 +54,11 @@ def analyze_seg(samples, fs):
                )
     max_amp = amp_env.max()
     attack_thresh = max_amp * 0.9
-    attack_idx = np.where(samples > attack_thresh)[0][0]
+    is_above_attack_thresh = np.where(samples > attack_thresh)[0]
+    if len(is_above_attack_thresh) > 0:
+        attack_idx = np.where(samples > attack_thresh)[0][0]
+    else:
+        attack_idx = 0
     attack_time = attack_idx / fs
     decay_val = max_amp * 0.10
     decay_idx = np.argmin(np.abs(amp_env[attack_idx:] - decay_val)) + attack_idx
@@ -74,7 +78,7 @@ def segment_and_analyze_sample(audio_file: Path, sound_name, min_seg_num_samples
     samples, fs = librosa.load(audio_file)
     track_dur = len(samples) / fs
     len_samples = len(samples)
-    if track_dur > 1:
+    if (track_dur > 1):
         onsets_idx = librosa.onset.onset_detect(y=samples, sr=fs, backtrack=True, units='samples')
     else:
         onsets_idx = [0, len_samples]
@@ -102,6 +106,7 @@ def segment_and_analyze_sample(audio_file: Path, sound_name, min_seg_num_samples
     segments_df["seg_sound"] = sound_name
     if sum(segments_df.seg_dur_sec == 0) > 0:
         print('oh no')
+    segments_df = segments_df[segments_df.seg_start_sec < 10]  # avoid giving too much weight to long samples
     return segments_df
 
 

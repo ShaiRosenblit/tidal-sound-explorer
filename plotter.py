@@ -47,8 +47,8 @@ class Scope:
         self.default_size_factor = 100
         self.default_color = 'w'
         self.p = self.ax.scatter([0], [0], visible=False)
-        num_text_elements = 10
-        self.texts = [self.ax.text(0, 0, '', color='w') for i in range(num_text_elements)]
+        self.num_text_elements = 20
+        self.texts = [self.ax.text(0, 0, '', color='w') for i in range(self.num_text_elements)]
         self.poiter_clicked = False
         self.fig.canvas.mpl_connect('button_press_event', self.on_click)
         self.fig.canvas.mpl_connect('button_release_event', self.on_release)
@@ -57,8 +57,10 @@ class Scope:
         self.selected_key = '1'
         self.clicked_key_vals = {}
         if init_random_keys:
-            for key in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']:
+            for key in '0123456789':
                 self.clicked_key_vals[key] = 0.5+np.random.randn()*0.2, 0.5+np.random.randn()*0.2
+        sock_plotter2player.sendto(json.dumps(self.clicked_key_vals).encode('utf-8'), (UDP_IP, UDP_PORT_plotter2player))
+
 
     def update(self, data_dict):
         self.t += self.dt
@@ -108,6 +110,8 @@ class Scope:
     
     def on_motion(self, event):
         if not self.poiter_clicked:
+            return
+        if len(self.clicked_key_vals) > self.num_text_elements:
             return
         # print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
         #     ('double' if event.dblclick else 'single', event.button,
